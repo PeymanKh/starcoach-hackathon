@@ -93,7 +93,7 @@ jobs:
           dc="docker compose -f docker-compose.prod.yml"
           $dc pull
           $dc up -d --wait db redis
-          $dc run --rm web python manage.py migrate --noinput
+          $dc run --rm -T web python manage.py migrate --noinput < /dev/null
           $dc up -d --remove-orphans
           $dc up -d --force-recreate nginx
           docker image prune -af --filter "until=72h"
