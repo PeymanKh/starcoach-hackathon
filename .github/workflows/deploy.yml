@@ -1,0 +1,111 @@
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [ci]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: >-
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Compute image names
+        id: meta
+        run: |
+          repo="${GITHUB_REPOSITORY,,}"
+          sha="$(git rev-parse HEAD)"
+          echo "image=ghcr.io/${repo}:${sha}" >> "$GITHUB_OUTPUT"
+          echo "latest=ghcr.io/${repo}:latest" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}
+            ${{ steps.meta.outputs.latest }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    env:
+      DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+      DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Copy deploy files
+        run: |
+          scp -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -r \
+            deploy/docker-compose.prod.yml deploy/nginx "$DEPLOY_USER@$DEPLOY_HOST:/opt/app/"
+
+      - name: Deploy
+        env:
+          IMAGE_REF: ${{ needs.build.outputs.image }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "IMAGE_REF='$IMAGE_REF' bash -s" <<'EOF'
+          set -euo pipefail
+          cd /opt/app
+          sed -i "s|^IMAGE=.*|IMAGE=${IMAGE_REF}|" .env
+          dc="docker compose -f docker-compose.prod.yml"
+          $dc pull
+          $dc up -d --wait db redis
+          $dc run --rm web python manage.py migrate --noinput
+          $dc up -d --remove-orphans
+          $dc up -d --force-recreate nginx
+          docker image prune -af --filter "until=72h"
+          EOF
+
+      - name: Health check
+        env:
+          DOMAIN: ${{ vars.DEPLOY_DOMAIN }}
+        run: curl -fsS --retry 12 --retry-delay 5 --retry-all-errors "https://${DOMAIN}/health/"
+
+      - name: Show server logs on failure
+        if: failure()
+        run: |
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd /opt/app && docker compose -f docker-compose.prod.yml ps && docker compose -f docker-compose.prod.yml logs --tail=80"
