@@ -21,3 +21,5 @@ build/
 
 # Dev
 staticfiles
+data/raw/
+data/clean/
