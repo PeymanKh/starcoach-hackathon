@@ -44,7 +44,7 @@ services:
     image: ${IMAGE}
     restart: unless-stopped
     env_file: .env
-    command: ["celery", "-A", "config", "worker", "-l", "info", "--concurrency=1"]
+    command: ["celery", "-A", "config", "worker", "-l", "info", "-P", "threads", "--concurrency=8"]
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
