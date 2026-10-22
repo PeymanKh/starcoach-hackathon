@@ -16,6 +16,11 @@ dependencies = [
 ]
 
 [dependency-groups]
+data = [
+    "jupyter>=1.1.1",
+    "pandas>=3.0.6",
+    "pyarrow>=26.0.0",
+]
 dev = [
     "pyright>=1.1.414",
     "pytest>=9.1.1",
@@ -26,7 +31,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["**/migrations/*"]
+extend-exclude = ["**/migrations/*", "*.ipynb"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
