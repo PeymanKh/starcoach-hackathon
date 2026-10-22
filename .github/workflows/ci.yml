@@ -8,6 +8,20 @@ on:
 jobs:
   check:
     runs-on: ubuntu-24.04
+    services:
+      db:
+        image: pgvector/pgvector:pg17
+        env:
+          POSTGRES_DB: app
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
     steps:
       - name: Check out the code
         uses: actions/checkout@v7
