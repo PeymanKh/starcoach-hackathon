@@ -21,5 +21,5 @@ build/
 
 # Dev
 staticfiles
-data/raw/
-data/clean/
+data/raw
+data/clean
