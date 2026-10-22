@@ -1,5 +1,10 @@
+from typing import TYPE_CHECKING
+
 from django.contrib.postgres.indexes import GinIndex
 from django.db import models
+
+if TYPE_CHECKING:
+    from django.db.models.fields.related_descriptors import RelatedManager
 
 
 class Shop(models.Model):
@@ -24,6 +29,10 @@ class Shop(models.Model):
     website_url = models.TextField(null=True)
     instagram_url = models.TextField(null=True)
     supports_fast_delivery = models.BooleanField(null=True)
+
+    # Reverse relations, declared only so pyright knows them.
+    working_hours: "RelatedManager[ShopWorkingHours]"
+    payments: "RelatedManager[ShopPayment]"
 
     def __str__(self):
         return self.name
