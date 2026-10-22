@@ -24,7 +24,7 @@ test:
 	uv run pytest
 
 worker:
-	uv run celery -A config worker -l info -P solo
+	uv run celery -A config worker -l info -P threads --concurrency=4
 
 
 # Django

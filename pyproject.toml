@@ -12,9 +12,11 @@ dependencies = [
     "gunicorn>=26.2.0",
     "langchain>=1.4.7",
     "langchain-openrouter>=0.2.9",
+    "langgraph-checkpoint-postgres>=3.2.0",
     "psycopg[binary]>=3.3.6",
     "pyarrow>=26.0.0",
     "python-dotenv>=1.2.4",
+    "redis>=6.4.0",
     "whitenoise>=6.12.0",
 ]
 
@@ -25,6 +27,8 @@ data = [
 ]
 dev = [
     "django-stubs>=6.1.2",
+    "djangorestframework-stubs>=3.18.1",
+    "fakeredis>=2.40.0",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-django>=4.14.0",
