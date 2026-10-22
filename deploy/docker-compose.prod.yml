@@ -32,6 +32,8 @@ services:
     image: ${IMAGE}
     restart: unless-stopped
     env_file: .env
+    volumes:
+      - ./data:/data:ro
     depends_on:
       db: {condition: service_healthy}
       redis: {condition: service_healthy}
