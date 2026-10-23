@@ -309,6 +309,13 @@ def test_compare_stores_needs_two_listing_stores(world):
     assert run(compare_stores, "iphone", ["A", "E"])["type"] == "error"
 
 
+def test_store_cards_carry_the_phone_for_the_call_button(world):
+    Shop.objects.filter(id="A").update(phone="02112345678")
+    stores = {s["id"]: s for s in run(find_stores, "iphone")["stores"]}
+    assert stores["A"]["phone"] == "02112345678"
+    assert stores["B"]["phone"] is None
+
+
 def test_store_results_name_their_product(world):
     # The UI names the product and shows its photo, even if it was found in an earlier message.
     iphone = {
