@@ -34,8 +34,15 @@ def to_ui_messages(messages: list[BaseMessage]) -> list[dict]:
             if message.text:
                 assistant["text"] = message.text
             for call in message.tool_calls:
-                step = {"id": call["id"], "tool": call["name"], "status": "running", "ui": None}
+                step = {
+                    "id": call["id"],
+                    "tool": call["name"],
+                    "args": call["args"],
+                    "status": "running",
+                    "ui": None,
+                }
                 assistant["steps"].append(step)
+
         elif isinstance(message, ToolMessage):
             for step in assistant["steps"]:
                 if step["id"] == message.tool_call_id:
