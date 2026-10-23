@@ -4,7 +4,6 @@ import json
 
 import fakeredis
 import pytest
-from django.core.cache import cache
 
 from apps.agents import runs
 from apps.agents.api import sse, views
@@ -12,13 +11,8 @@ from apps.agents.api import sse, views
 RUN_ID = "a" * 32
 
 
-@pytest.fixture(autouse=True)
-def fresh_rate_limit():
-    cache.clear()  # the run rate limit counts requests in Django's cache
-
-
 @pytest.fixture
-def queued(monkeypatch):
+def queued(monkeypatch, db):
     """Capture runs instead of sending them to Celery."""
     calls = []
 

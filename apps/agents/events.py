@@ -54,11 +54,11 @@ def stream_events(agent, message: str, thread_id: str, context: UserContext) -> 
                             "id": msg.tool_call_id,
                             "tool": msg.name,
                             "ok": msg.status != "error",
-                            "ui": _card_data(msg.content),
+                            "ui": card_data(msg.content),
                         }
 
 
-def _card_data(content) -> dict | None:
+def card_data(content) -> dict | None:
     """Our tools return dicts, which LangChain passes on as JSON text. Errors have no card."""
 
     if not isinstance(content, str):

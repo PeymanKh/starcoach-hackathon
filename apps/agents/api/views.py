@@ -3,16 +3,19 @@ from uuid import uuid4
 
 from celery import Task
 from django.http import StreamingHttpResponse
+from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views import View
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.agents.api.serializers import RunCreateSerializer
+from apps.agents.api.serializers import ConversationSerializer, RunCreateSerializer
 from apps.agents.api.sse import event_stream
 from apps.agents.api.throttles import RunRateThrottle
+from apps.agents.history import load_messages
 from apps.agents.llm import DEFAULT_MODEL, DEFAULT_THINKING, MODELS, THINKING_LEVELS
+from apps.agents.models import Conversation
 from apps.agents.tasks import run_agent
 
 
@@ -38,6 +41,7 @@ class RunCreateView(APIView):
 
         run_id = uuid4().hex
         thread_id = data.get("thread_id") or uuid4().hex  # no thread_id: a new conversation
+        Conversation.record_message(thread_id, data["message"])
 
         cast(Task, run_agent).delay(
             run_id=run_id,
@@ -78,3 +82,21 @@ class RunStreamView(View):
         response["Cache-Control"] = "no-cache"
         response["X-Accel-Buffering"] = "no"  # tells nginx not to buffer this response
         return response
+
+
+class ConversationListView(APIView):
+    """All chats for the sidebar, most recently active first."""
+
+    def get(self, request):
+        conversations = Conversation.objects.all()[:100]
+        return Response(ConversationSerializer(conversations, many=True).data)
+
+
+class ConversationDetailView(APIView):
+    """One chat with its full history, to reopen it."""
+
+    def get(self, request, thread_id: str):
+        conversation = get_object_or_404(Conversation, thread_id=thread_id)
+        return Response(
+            {**ConversationSerializer(conversation).data, "messages": load_messages(thread_id)}
+        )

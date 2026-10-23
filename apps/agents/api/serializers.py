@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.agents.llm import DEFAULT_MODEL, DEFAULT_THINKING, MODELS, THINKING_LEVELS
+from apps.agents.models import Conversation
 
 
 class RunCreateSerializer(serializers.Serializer):
@@ -15,3 +16,9 @@ class RunCreateSerializer(serializers.Serializer):
         if ("lat" in attrs) != ("lon" in attrs):
             raise serializers.ValidationError("Send both lat and lon, or neither.")
         return attrs
+
+
+class ConversationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Conversation
+        fields = ["thread_id", "title", "created_at", "updated_at"]
