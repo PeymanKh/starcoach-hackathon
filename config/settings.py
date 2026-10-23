@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 
 import dj_database_url
+from corsheaders.defaults import default_headers
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -17,6 +18,13 @@ ALLOWED_HOSTS = [
     for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
     if h.strip()
 ]
+
+CORS_ALLOWED_ORIGINS = [
+    o.strip() for o in os.environ.get("DJANGO_CORS_ALLOWED_ORIGINS", "").split(",") if o.strip()
+]
+
+CORS_ALLOW_HEADERS = (*default_headers, "last-event-id")
+
 
 AUTH_USER_MODEL = "accounts.User"
 
@@ -39,6 +47,7 @@ INSTALLED_APPS = [
     "django.contrib.postgres",
     # 3rd Party
     "rest_framework",
+    "corsheaders",
     # Ours
     "apps.accounts.apps.AccountsConfig",
     "apps.agents.apps.AgentsConfig",
@@ -46,6 +55,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",

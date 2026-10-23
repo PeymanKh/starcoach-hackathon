@@ -32,6 +32,7 @@ def _store_card(shop: Shop, context: UserContext) -> dict:
         "opening": opening_status(list(shop.working_hours.all())),
         "payments": [{"provider": p.provider, "channel": p.channel} for p in shop.payments.all()],
         "fast_delivery": shop.supports_fast_delivery,
+        "phone": shop.phone,
     }
 
 
