@@ -137,7 +137,7 @@ MAILERS = {
 
 # Django REST framework
 REST_FRAMEWORK = {
-    "DEFAULT_THROTTLE_RATES": {"agent_runs": "10/min"},
+    "DEFAULT_THROTTLE_RATES": {"agent_runs": "10/min", "transcribe": "60/min"},
     "NUM_PROXIES": 1,
 }
 

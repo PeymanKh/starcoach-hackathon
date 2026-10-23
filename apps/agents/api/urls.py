@@ -6,6 +6,7 @@ from apps.agents.api.views import (
     ModelListView,
     RunCreateView,
     RunStreamView,
+    TranscribeView,
 )
 
 app_name = "agents"
@@ -20,4 +21,5 @@ urlpatterns = [
         ConversationDetailView.as_view(),
         name="conversation-detail",
     ),
+    path("transcribe/", TranscribeView.as_view(), name="transcribe"),
 ]
