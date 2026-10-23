@@ -12,7 +12,7 @@ import jdatetime
 from apps.agents.context import UserContext
 from apps.agents.tools.helpers import TEHRAN
 
-PARTS = ["role_v1", "workflow_v1", "tools_v1", "rules_v1"]
+PARTS = ["role_v1", "voice_v1", "workflow_v1", "tools_v1", "format_v1", "rules_v1"]
 
 FOLDER = Path(__file__).parent
 
