@@ -49,8 +49,21 @@ def test_agent_memory_becomes_the_chat_the_user_saw():
             "role": "assistant",
             "text": "این خوبه [[product:p1]]",
             "steps": [
-                {"id": "c1", "tool": "search_products", "status": "done", "ui": card},
-                {"id": "c2", "tool": "find_stores", "status": "failed", "ui": None},
+                # args come back too, so a reopened chat shows what each tool was asked for
+                {
+                    "id": "c1",
+                    "tool": "search_products",
+                    "args": {"query": "گوشی"},
+                    "status": "done",
+                    "ui": card,
+                },
+                {
+                    "id": "c2",
+                    "tool": "find_stores",
+                    "args": {"product_id": "p1"},
+                    "status": "failed",
+                    "ui": None,
+                },
             ],
             "status": "done",
         },

@@ -4,7 +4,7 @@ from langchain.tools import ToolRuntime, tool
 
 from apps.agents.context import UserContext
 from apps.agents.tools.helpers import distance_km, opening_status, paginate, price_freshness
-from apps.catalog.models import Offer, Shop, ShopCategory, ShopProduct
+from apps.catalog.models import Offer, Product, Shop, ShopCategory, ShopProduct
 
 TOROB_PAY = "ترب پی"
 WEEK = ["sat", "sun", "mon", "tue", "wed", "thu", "fri"]
@@ -33,6 +33,12 @@ def _store_card(shop: Shop, context: UserContext) -> dict:
         "payments": [{"provider": p.provider, "channel": p.channel} for p in shop.payments.all()],
         "fast_delivery": shop.supports_fast_delivery,
     }
+
+
+def _product_summary(product_id: str) -> dict | None:
+    """The product a store result is about, so the UI can name it and show its photo."""
+
+    return Product.objects.filter(id=product_id).values("id", "persian_title", "main_image").first()
 
 
 @tool
@@ -108,6 +114,7 @@ def find_stores(
     return {
         "type": "store_list",
         "product_id": product_id,
+        "product": _product_summary(product_id),
         "total": len(stores),
         "page": page,
         "page_size": page_size,
@@ -287,6 +294,7 @@ def compare_stores(product_id: str, shop_ids: list[str], runtime: ToolRuntime[Us
     return {
         "type": "store_comparison",
         "product_id": product_id,
+        "product": _product_summary(product_id),
         "stores": stores,
         "not_listing_this_product": [sid for sid in shop_ids if sid not in listed],
     }

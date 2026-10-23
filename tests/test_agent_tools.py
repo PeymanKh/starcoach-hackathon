@@ -307,3 +307,15 @@ def test_compare_stores_badges_and_warranty(world):
 
 def test_compare_stores_needs_two_listing_stores(world):
     assert run(compare_stores, "iphone", ["A", "E"])["type"] == "error"
+
+
+def test_store_results_name_their_product(world):
+    # The UI names the product and shows its photo, even if it was found in an earlier message.
+    iphone = {
+        "id": "iphone",
+        "persian_title": "گوشی آیفون 15 | حافظه 128 گیگابایت",
+        "main_image": None,
+    }
+    assert run(find_stores, "iphone")["product"] == iphone
+    assert run(compare_stores, "iphone", ["A", "B"])["product"] == iphone
+    assert run(find_stores, "nope")["product"] is None
