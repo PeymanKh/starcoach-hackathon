@@ -7,7 +7,8 @@ from django.http import StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views import View
-from rest_framework import status
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
 from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,6 +30,18 @@ logger = logging.getLogger(__name__)
 
 
 class ModelListView(APIView):
+    @extend_schema(
+        summary="Available models and reasoning levels",
+        responses=inline_serializer(
+            "ModelList",
+            {
+                "models": serializers.ListField(child=serializers.DictField()),
+                "default_model": serializers.CharField(),
+                "thinking_levels": serializers.ListField(child=serializers.CharField()),
+                "default_thinking": serializers.CharField(),
+            },
+        ),
+    )
     def get(self, request):
         return Response(
             {
@@ -43,6 +56,21 @@ class ModelListView(APIView):
 class RunCreateView(APIView):
     throttle_classes = [RunRateThrottle]
 
+    @extend_schema(
+        summary="Send a message (starts a run)",
+        description="Answers right away. Read the answer from `stream_url` as Server-Sent Events.",
+        request=RunCreateSerializer,
+        responses={
+            202: inline_serializer(
+                "RunCreated",
+                {
+                    "run_id": serializers.CharField(),
+                    "thread_id": serializers.CharField(),
+                    "stream_url": serializers.CharField(),
+                },
+            )
+        },
+    )
     def post(self, request):
         serializer = RunCreateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -96,6 +124,7 @@ class RunStreamView(View):
 class ConversationListView(APIView):
     """All chats for the sidebar, most recently active first."""
 
+    @extend_schema(summary="Chat list", responses=ConversationSerializer(many=True))
     def get(self, request):
         conversations = Conversation.objects.all()[:100]
         return Response(ConversationSerializer(conversations, many=True).data)
@@ -104,6 +133,19 @@ class ConversationListView(APIView):
 class ConversationDetailView(APIView):
     """One chat with its full history, to reopen it."""
 
+    @extend_schema(
+        summary="One chat with its messages and cards",
+        responses=inline_serializer(
+            "ConversationDetail",
+            {
+                "thread_id": serializers.CharField(),
+                "title": serializers.CharField(),
+                "created_at": serializers.DateTimeField(),
+                "updated_at": serializers.DateTimeField(),
+                "messages": serializers.ListField(child=serializers.DictField()),
+            },
+        ),
+    )
     def get(self, request, thread_id: str):
         conversation = get_object_or_404(Conversation, thread_id=thread_id)
         return Response(
@@ -120,6 +162,14 @@ class TranscribeView(APIView):
     parser_classes = [MultiPartParser]
     throttle_classes = [TranscribeRateThrottle]
 
+    @extend_schema(
+        summary="Speech to text (WAV, up to 3 MB)",
+        request={"multipart/form-data": TranscribeSerializer},
+        responses={
+            200: inline_serializer("Transcript", {"text": serializers.CharField()}),
+            502: inline_serializer("TranscribeError", {"detail": serializers.CharField()}),
+        },
+    )
     def post(self, request):
         serializer = TranscribeSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     # 3rd Party
     "rest_framework",
     "corsheaders",
+    "drf_spectacular",
     # Ours
     "apps.accounts.apps.AccountsConfig",
     "apps.agents.apps.AgentsConfig",
@@ -149,6 +150,46 @@ MAILERS = {
 REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_RATES": {"agent_runs": "10/min", "transcribe": "60/min"},
     "NUM_PROXIES": 1,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+# API docs: the OpenAPI schema at /api/schema/, shown with ReDoc at /api/docs/.
+# The SSE stream is a plain Django view (not DRF), so it is explained here instead.
+SPECTACULAR_SETTINGS = {
+    "TITLE": "Starcoach Hackathon Challenge API",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    # Pinned: ReDoc 3 ships as an ES module and renders a blank page with drf-spectacular.
+    "REDOC_DIST": "https://cdn.jsdelivr.net/npm/redoc@2.5.4",
+    "DESCRIPTION": """
+An AI shopping assistant for buying in person in Tehran.
+
+## How a message works
+
+1. `POST /api/agent/runs/` with the message. It answers right away (202) with a `run_id`,
+   a `thread_id` and a `stream_url`.
+2. Open `GET /api/agent/runs/{run_id}/stream/` as Server-Sent Events and read the answer
+   while the agent works.
+3. Send the `thread_id` with the next message to continue the same chat.
+
+## Stream events
+
+| Event | Data |
+|---|---|
+| `thinking` | The model is reasoning |
+| `tool_start` | A tool started: its name and arguments |
+| `tool_end` | A tool finished: its result, used by the UI for cards |
+| `token` | A piece of the answer text |
+| `done` | The answer is complete |
+| `error` | The run failed |
+
+Every event has an id. If the connection drops, reconnect with the `Last-Event-ID` header
+(or `?after=<id>`) and the stream continues after that event.
+
+## Limits
+
+10 runs and 60 transcriptions per minute per IP.
+""",
 }
 
 
