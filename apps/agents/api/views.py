@@ -1,3 +1,4 @@
+import logging
 from typing import cast
 from uuid import uuid4
 
@@ -7,16 +8,24 @@ from django.shortcuts import get_object_or_404
 from django.urls import reverse
 from django.views import View
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.agents.api.serializers import ConversationSerializer, RunCreateSerializer
+from apps.agents.api.serializers import (
+    ConversationSerializer,
+    RunCreateSerializer,
+    TranscribeSerializer,
+)
 from apps.agents.api.sse import event_stream
-from apps.agents.api.throttles import RunRateThrottle
+from apps.agents.api.throttles import RunRateThrottle, TranscribeRateThrottle
 from apps.agents.history import load_messages
 from apps.agents.llm import DEFAULT_MODEL, DEFAULT_THINKING, MODELS, THINKING_LEVELS
 from apps.agents.models import Conversation
+from apps.agents.speech import TranscriptionError, transcribe
 from apps.agents.tasks import run_agent
+
+logger = logging.getLogger(__name__)
 
 
 class ModelListView(APIView):
@@ -100,3 +109,28 @@ class ConversationDetailView(APIView):
         return Response(
             {**ConversationSerializer(conversation).data, "messages": load_messages(thread_id)}
         )
+
+
+class TranscribeView(APIView):
+    """
+    Speech to text for the mic button. The UI sends the growing recording every ~1.5 s,
+    so the text appears while the user is still talking.
+    """
+
+    parser_classes = [MultiPartParser]
+    throttle_classes = [TranscribeRateThrottle]
+
+    def post(self, request):
+        serializer = TranscribeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        audio = cast(dict, serializer.validated_data)["audio"]  # DRF has no type hints
+
+        try:
+            text = transcribe(audio.read())
+        except TranscriptionError:
+            logger.exception("Transcription failed")
+            return Response(
+                {"detail": "تبدیل صدا به متن انجام نشد. دوباره تلاش کن."},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response({"text": text})

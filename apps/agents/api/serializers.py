@@ -3,6 +3,8 @@ from rest_framework import serializers
 from apps.agents.llm import DEFAULT_MODEL, DEFAULT_THINKING, MODELS, THINKING_LEVELS
 from apps.agents.models import Conversation
 
+MAX_AUDIO_BYTES = 3 * 1024 * 1024
+
 
 class RunCreateSerializer(serializers.Serializer):
     message = serializers.CharField(max_length=2000)
@@ -22,3 +24,18 @@ class ConversationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Conversation
         fields = ["thread_id", "title", "created_at", "updated_at"]
+
+
+class TranscribeSerializer(serializers.Serializer):
+    """A voice recording from the mic button, as WAV."""
+
+    audio = serializers.FileField()
+
+    def validate_audio(self, audio):
+        if audio.size > MAX_AUDIO_BYTES:
+            raise serializers.ValidationError("The recording is too long.")
+        header = audio.read(12)
+        audio.seek(0)
+        if header[:4] != b"RIFF" or header[8:12] != b"WAVE":
+            raise serializers.ValidationError("Send the recording as WAV.")
+        return audio
