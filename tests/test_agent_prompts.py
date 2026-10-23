@@ -47,8 +47,8 @@ def test_friday_warning_only_on_fridays():
 def test_location_shared_or_not(context, shared):
     text = context_prompt(context, now=SATURDAY)
     assert ("nearest shops are available" in text) is shared
-    assert ("ask them to share it" in text) is not shared
+    assert ("location is unknown" in text) is not shared
 
 
 def test_no_context_at_all_means_no_location():
-    assert "ask them to share it" in build_system_prompt(None)
+    assert "location is unknown" in build_system_prompt(None)

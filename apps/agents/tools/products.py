@@ -150,11 +150,13 @@ def compare_products(product_ids: list[str]) -> dict:
 @tool
 def explore_category(category: str, max_price: int | None = None) -> dict:
     """
-    Overview of a product category, for users who don't know exactly what they need:
-    price bands, popular brands, and the specs that matter most when choosing.
+    Overview of a product category: catalog price bands, frequently represented
+    brands, and common specification fields. Common fields are not necessarily
+    the most important buying criteria.
 
-    Use this when the user describes a need ("یه لپ تاپ برای دانشگاه") instead of a product.
-    Then ask about their budget and the important specs before searching.
+    Use this when catalog context would help the user understand their options.
+    Use the overview to guide the conversation. Ask only for missing details
+    that materially affect the recommendation.
 
     Args:
         category: Category name or part of it, e.g. "لپ تاپ" or "یخچال".
@@ -206,11 +208,14 @@ def explore_category(category: str, max_price: int | None = None) -> dict:
 @tool
 def find_alternatives(product_id: str, max_price: int | None = None, limit: int = 8) -> dict:
     """
-    Find similar products to suggest instead of the one the user wanted: same category,
-    similar name and a similar price (or within the user's budget).
+    Find alternative candidates for an existing catalog product using category,
+    name similarity, and price. Check their suitability for the user's needs
+    before recommending them.
 
-    Use this when the product is out of stock, too expensive, has no store nearby, or
-    does not exist in the data. To find the SAME product at other stores, use find_stores.
+    Requires a valid product ID. Use when the original product is too expensive
+    or suitable shop listings are missing. If the original product was not found
+    in the catalog, use search_products with related terms instead.
+    To find the SAME product at other stores, use find_stores.
 
     Args:
         product_id: The product the user wanted.

@@ -62,8 +62,7 @@ def context_prompt(context: UserContext, now: datetime | None = None) -> str:
         lines.append("- The user shared their location: distances and nearest shops are available.")
     else:
         lines.append(
-            "- The user has not shared their location: you can still find products, but ask them"
-            " to share it from website's side bar before looking for shops near them."
+            "- The user's location is unknown: shops are sorted by price, without distances."
         )
     return "\n".join(lines)
 
